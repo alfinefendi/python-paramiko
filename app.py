@@ -1,28 +1,33 @@
-import paramiko
-from dotenv import load_dotenv
-import os
+import telnetlib
+import time
 
-# Load environment variables from .env file
-load_dotenv()
+host = "10.10.10.10"
+user = "admin"
+password = "admin"
 
-# Fetch environment variables
-host = os.getenv('HOST')
-username = os.getenv('USERNAME')
-password = os.getenv('PASSWORD')
+# Increase the timeout value to allow more time for responses
+timeout = 10
 
-# Print out the values to verify
-print(f"Loaded HOST: {host}")
-print(f"Loaded PASSWORD: {password}")
+try:
+    tel = telnetlib.Telnet(host, 23, timeout)
 
-ssh_client = paramiko.SSHClient()
-ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-try :
-    ssh_client.connect(hostname=host, username=username, password=password)
-    print("Connected to the server successfully!")
-    command = 'cd /var/www && ls'
-    stdin,stdout,stderr = ssh_client.exec_command(command)
-    print(stdout.read().decode())
-    print(stderr.read().decode())
+    tel.read_until(b"Username:", timeout)
+    tel.write(user.encode('ascii') + b"\n")
+    tel.read_until(b"Password:", timeout)
+    tel.write(password.encode('ascii') + b"\n")
+    time.sleep(1) 
+    tel.write(b"show gpon \n")
+    # time.sleep(1) 
+    # tel.write(b"interface gpon-olt_1/2/2\n")
+    # time.sleep(1) 
+    # tel.write(b"no shutdown\n")
+    time.sleep(1)
+    output = tel.read_very_eager().decode('ascii')
+    print(output)
 
-finally :
-    ssh_client.close()
+finally:
+    # Ensure the connection is closed even if an error occurs
+    try:
+        tel.close()
+    except Exception as close_error:
+        print(f"Failed to close the connection: {close_error}")
